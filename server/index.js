@@ -50,12 +50,11 @@ app.post("/api/get-question", (req, res) => {
 
       funnelParts.forEach((part) => {
         const questionParts = part.split(">");
-        const questionText = questionParts[0].trim(); // Get the question text
+        const questionText = questionParts[0].trim();
         const options = questionParts[1]
           ? questionParts[1].split(",").map((opt) => opt.trim())
-          : []; // Get the options
+          : [];
 
-        // Create or find the existing question entry
         let questionEntry = questions.find((q) => q.question === questionText);
         if (!questionEntry) {
           questionEntry = { question: questionText, options: [] };
@@ -63,37 +62,29 @@ app.post("/api/get-question", (req, res) => {
         }
 
         options.forEach((option) => {
-          // Only add unique combinations of option and service ID
-          if (
-            !questionEntry.options.some(
-              (o) => o.option === option && o.serviceID === service.serviceID
-            )
-          ) {
-            questionEntry.options.push({
-              option,
-              serviceID: service.serviceID,
-            });
+          let optionEntry = questionEntry.options.find(
+            (o) => o.option === option
+          );
+          if (!optionEntry) {
+            optionEntry = { option, serviceIDs: [] };
+            questionEntry.options.push(optionEntry);
+          }
+
+          // Add the serviceID to the option's serviceIDs array if it's not already present
+          if (!optionEntry.serviceIDs.includes(service.serviceID)) {
+            optionEntry.serviceIDs.push(service.serviceID);
           }
         });
       });
     });
 
-    // Structure the response to have unique serviceID mapping
-    const responseQuestions = questions.map((question) => {
-      const uniqueOptions = {};
-      question.options.forEach((option) => {
-        if (!uniqueOptions[option.option]) {
-          uniqueOptions[option.option] = option.serviceID;
-        }
-      });
-      return {
-        question: question.question,
-        options: Object.entries(uniqueOptions).map(([option, serviceID]) => ({
-          option,
-          serviceID,
-        })),
-      };
-    });
+    const responseQuestions = questions.map((question) => ({
+      question: question.question,
+      options: question.options.map((opt) => ({
+        option: opt.option,
+        serviceIDs: opt.serviceIDs, // Return all associated service IDs
+      })),
+    }));
 
     res.json({
       questions: responseQuestions,

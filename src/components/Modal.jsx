@@ -47,7 +47,7 @@ const Modal = ({ isOpen, onClose, userDetails, setUserDetails, onConfirm, servic
                 required
               />
               <input
-                type="text"
+                type="number"
                 placeholder="Zipcode"
                 value={userDetails.zipcode}
                 onChange={(e) =>
@@ -65,7 +65,7 @@ const Modal = ({ isOpen, onClose, userDetails, setUserDetails, onConfirm, servic
                 required
               />
               <input
-                type="tel"
+                type="number"
                 placeholder="Phone Number"
                 value={userDetails.phone}
                 onChange={(e) =>

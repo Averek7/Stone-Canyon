@@ -21,6 +21,8 @@ const Chatbot = ({ onClose }) => {
   const [showModal, setShowModal] = useState(false);
   const [serviceID, setServiceID] = useState("");
   const [modalType, setModalType] = useState("confirm");
+  const [userInput, setUserInput] = useState("");
+  const [possibleServiceIDs, setPossibleServiceIDs] = useState([]);
 
   const fetchQuestions = async (categoryID) => {
     try {
@@ -41,29 +43,79 @@ const Chatbot = ({ onClose }) => {
 
   const handleOptionSelect = (option) => {
     const currentQuestion = questions[currentQuestionIndex];
-
     const selectedOption = currentQuestion.options.find(
       (opt) => opt.option === option
     );
 
-    const selectedServiceID = selectedOption ? selectedOption.serviceID : "";
+    if (selectedOption) {
+      // Initialize possibleServiceIDs if it's the first question
+      if (currentQuestionIndex === 0) {
+        // Set possibleServiceIDs to the serviceIDs of the selected option
+        setPossibleServiceIDs(selectedOption.serviceIDs);
+      } else {
+        // Update possible service IDs based on previous selections
+        setPossibleServiceIDs((prevIDs) => {
+          const newPossibleIDs = prevIDs.filter((id) =>
+            selectedOption.serviceIDs.includes(id)
+          );
+          setServiceID(newPossibleIDs); // Update serviceID here
+          return newPossibleIDs;
+        });
+      }
 
-    setPreviousInteractions((prev) => [
-      ...prev,
-      { question: currentQuestion.question, option: option },
-    ]);
+      // Update previous interactions and user responses
+      setPreviousInteractions((prev) => [
+        ...prev,
+        { question: currentQuestion.question, option: option },
+      ]);
 
-    setUserResponses({
-      ...userResponses,
-      [currentQuestion.question]: option,
-    });
+      setUserResponses({
+        ...userResponses,
+        [currentQuestion.question]: option,
+      });
 
-    if (currentQuestionIndex === questions.length - 1) {
-      setServiceID(selectedServiceID);
-      setModalType("confirm");
-      setShowModal(true);
+      // Handle case when there's only one question
+      if (questions.length === 1) {
+        const finalServiceID = selectedOption.serviceIDs[0]; // Since there's only one question, take the first service ID
+
+        setServiceID([finalServiceID]);
+        setModalType("confirm");
+        setShowModal(true);
+      }
+      // Handle case when possibleServiceIDs reduces to a single ID
+      else if (possibleServiceIDs.length === 1) {
+        const finalServiceID = possibleServiceIDs[0]; // Only one valid service ID remains
+
+        // Set the final serviceID and open the confirmation modal
+        setServiceID([finalServiceID]);
+        setModalType("confirm");
+        setShowModal(true);
+      }
+      // Check if this is the last question
+      else if (currentQuestionIndex === questions.length - 1) {
+        if (possibleServiceIDs.length > 0) {
+          setModalType("confirm");
+          setShowModal(true);
+        } else {
+          console.error("No valid service ID found.");
+          setShowModal(false);
+        }
+      } else {
+        setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
+        setUserInput(""); 
+      }
+    }
+  };
+
+  const handleInputSubmit = (e) => {
+    e.preventDefault();
+    const currentQuestion = questions[currentQuestionIndex];
+    const selectedOption = userInput;
+
+    if (currentQuestion.options.some((opt) => opt.option === selectedOption)) {
+      handleOptionSelect(selectedOption);
     } else {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      alert("Please select a valid option.");
     }
   };
 
@@ -71,9 +123,9 @@ const Chatbot = ({ onClose }) => {
     const userDetailsWithServiceID = {
       ...userDetails,
       serviceID,
+      additionalInfo: userInput,
     };
 
-    console.log("User Details Submitted:", userDetailsWithServiceID);
     try {
       const response = await axios.post(
         "https://stone-canyon.onrender.com/api/userDetails",
@@ -81,7 +133,8 @@ const Chatbot = ({ onClose }) => {
           userDetails: userDetailsWithServiceID,
         }
       );
-      console.log("User details submitted successfully:", response);
+
+      alert("User details submitted successfully !");
     } catch (error) {
       console.error("Error submitting user details:", error);
     }
@@ -112,7 +165,7 @@ const Chatbot = ({ onClose }) => {
       </div>
 
       <div className="chatbot-body">
-        <h4>Category Serves to : {category}</h4>
+        <h4>Category Serves to: {category}</h4>
         {previousInteractions.map((interaction, index) => (
           <div key={index} className="previous-interaction">
             <p className="bot-response">
@@ -151,6 +204,17 @@ const Chatbot = ({ onClose }) => {
           </div>
         )}
       </div>
+
+      <form onSubmit={handleInputSubmit} className="input-form">
+        <input
+          type="text"
+          placeholder="Type your option..."
+          value={userInput}
+          onChange={(e) => setUserInput(e.target.value)}
+          className="user-input"
+        />
+        <button type="submit">Submit</button>
+      </form>
 
       <Modal
         isOpen={showModal}
