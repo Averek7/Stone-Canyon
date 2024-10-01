@@ -34,7 +34,6 @@ axios.get(csvUrl, { responseType: "stream" }).then((response) => {
     });
 });
 
-
 app.post("/api/get-question", (req, res) => {
   const { categoryID } = req.body;
   const services = servicesData.filter(
@@ -96,15 +95,17 @@ app.post("/api/get-question", (req, res) => {
       };
     });
 
-    res.json({ questions: responseQuestions, categoryName: services[0].categoryName });
+    res.json({
+      questions: responseQuestions,
+      categoryName: services[0].categoryName,
+    });
   } else {
     res.status(404).json({ error: "Category not found" });
   }
 });
 
 const openai = new OpenAI({
-  apiKey:
-    "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", // Replace with your actual OpenAI API key
+  apiKey: process.env.OPENAI_API,
 });
 
 app.post("/api/get-prompt", async (req, res) => {
@@ -125,6 +126,10 @@ app.post("/api/get-prompt", async (req, res) => {
   }
 });
 
-app.use('/api', require('./routes/userDetails'))
+app.use("/api", require("./routes/userDetails"));
+
+app.get("/", (req, res) => {
+  res.send("Server is running");
+});
 
 app.listen(3000, () => console.log("Server started on port 3000"));

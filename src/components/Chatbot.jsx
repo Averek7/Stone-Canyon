@@ -25,7 +25,7 @@ const Chatbot = ({ onClose }) => {
   const fetchQuestions = async (categoryID) => {
     try {
       const response = await axios.post(
-        "http://localhost:3000/api/get-question",
+        "https://stone-canyon.onrender.com/api/get-question",
         { categoryID }
       );
       setQuestions(response.data.questions);
@@ -76,7 +76,7 @@ const Chatbot = ({ onClose }) => {
     console.log("User Details Submitted:", userDetailsWithServiceID);
     try {
       const response = await axios.post(
-        "http://localhost:3000/api/userDetails",
+        "https://stone-canyon.onrender.com/api/userDetails",
         {
           userDetails: userDetailsWithServiceID,
         }
