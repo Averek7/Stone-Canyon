@@ -23,6 +23,7 @@ const Chatbot = ({ onClose }) => {
   const [modalType, setModalType] = useState("confirm");
   const [userInput, setUserInput] = useState("");
   const [possibleServiceIDs, setPossibleServiceIDs] = useState([]);
+  const [generatedPrompt, setGeneratedPrompt] = useState("");
 
   const fetchQuestions = async (categoryID) => {
     try {
@@ -102,20 +103,63 @@ const Chatbot = ({ onClose }) => {
         }
       } else {
         setCurrentQuestionIndex((prevIndex) => prevIndex + 1);
-        setUserInput(""); 
+        setUserInput("");
       }
+    }
+  };
+
+  const generatePrompt = async (query) => {
+    try {
+      const response = await axios.post("http://localhost:3000/api/prompt", {
+        query,
+      });
+      const newPrompt = response.data.prompt;
+
+      const userInteraction = {
+        question: generatedPrompt,
+        option: userInput,
+      };
+
+      // setPreviousInteractions((prev) => [...prev, userInteraction]);
+
+      setGeneratedPrompt(newPrompt);
+    } catch (error) {
+      console.error("Error generating prompt:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleInputSubmit = (e) => {
     e.preventDefault();
-    const currentQuestion = questions[currentQuestionIndex];
-    const selectedOption = userInput;
 
-    if (currentQuestion.options.some((opt) => opt.option === selectedOption)) {
-      handleOptionSelect(selectedOption);
+    const categoryMatch = userInput.match(/Category\s*(\d+)/i);
+    console.log(categoryMatch);
+    if (categoryMatch) {
+      setChatbotVisible(true);
+      fetchQuestions(categoryMatch[1]);
+      return;
+    }
+
+    const interaction = { question: generatedPrompt, option: userInput };
+    setPreviousInteractions((prev) => [...prev, interaction]);
+    setUserResponses((prev) => ({ ...prev, [generatedPrompt]: userInput }));
+
+    if (!categoryID) {
+      setLoading(true);
+      generatePrompt(userInput);
+      setUserInput("");
     } else {
-      alert("Please select a valid option.");
+      const currentQuestion = questions[currentQuestionIndex];
+      const selectedOption = userInput;
+
+      if (
+        currentQuestion.options.some((opt) => opt.option === selectedOption)
+      ) {
+        handleOptionSelect(selectedOption);
+      } else {
+        alert("Please select a valid option.");
+      }
     }
   };
 
@@ -146,6 +190,9 @@ const Chatbot = ({ onClose }) => {
   useEffect(() => {
     if (categoryID) {
       fetchQuestions(categoryID);
+    } else {
+      setLoading(false);
+      setGeneratedPrompt("How can I assist you?");
     }
   }, [categoryID]);
 
@@ -165,7 +212,12 @@ const Chatbot = ({ onClose }) => {
       </div>
 
       <div className="chatbot-body">
-        <h4>Category Serves to: {category}</h4>
+        <h4>
+          {categoryID
+            ? `Category Serves to: ${category}`
+            : "No Category Selected"}
+        </h4>
+
         {previousInteractions.map((interaction, index) => (
           <div key={index} className="previous-interaction">
             <p className="bot-response">
@@ -176,6 +228,18 @@ const Chatbot = ({ onClose }) => {
             </p>
           </div>
         ))}
+
+        <div className="previous-interaction">
+          <p className="bot-response">
+            <strong>Bot:</strong> {generatedPrompt}
+          </p>
+        </div>
+
+        {loading && (
+          <div className="loading-indicator">
+            <p>Bot is thinking...</p>
+          </div>
+        )}
 
         {!showModal && currentQuestionIndex < questions.length && (
           <div className="current-question">
@@ -195,7 +259,6 @@ const Chatbot = ({ onClose }) => {
             </div>
           </div>
         )}
-
         {isLastQuestion && serviceID && (
           <div className="current-question">
             <p className="bot-response">

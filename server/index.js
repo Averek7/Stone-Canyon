@@ -2,8 +2,7 @@ const express = require("express");
 const csv = require("csv-parser");
 const cors = require("cors");
 const axios = require("axios");
-const { OpenAI } = require("openai");
-
+const { OpenAI } = require("openai"); 
 require("dotenv").config();
 
 const app = express();
@@ -99,14 +98,13 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API,
 });
 
-app.post("/api/get-prompt", async (req, res) => {
+app.post("/api/prompt", async (req, res) => {
   try {
-    const { currentQuestion } = req.body;
+    const { query } = req.body;
 
-    const prompt = `How can i assist you ? ${currentQuestion}`;
     const response = await openai.chat.completions.create({
       model: "gpt-4",
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: query }],
     });
 
     const generatedPrompt = response.choices[0].message.content.trim();
