@@ -110,7 +110,7 @@ const Chatbot = ({ onClose }) => {
 
   const generatePrompt = async (query) => {
     try {
-      const response = await axios.post("http://localhost:3000/api/prompt", {
+      const response = await axios.post("https://stone-canyon.onrender.com/api/prompt", {
         query,
       });
       const newPrompt = response.data.prompt;
